@@ -1,0 +1,18 @@
+# Ambientes Virtuais
+.venv/
+venv/
+env/
+
+# Arquivos de Configuração e Segredos
+.env
+
+# Python Cache
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Outros
+.DS_Store
+
+#arquivos temporarios 
+temp/
