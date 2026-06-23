@@ -47,7 +47,7 @@ if prompt := st.chat_input("Faça uma pergunta para a IA..."):
         try:
             # Conectando ao NOSSO Gateway com o cabeçalho de autenticação
             # Conectando ao NOSSO Gateway com o cabeçalho de autenticação
-            with httpx.stream("POST", "http://127.0.0.1:8000/v1/chat/completions", json=payload, headers=headers, timeout=60.0) as response:
+            with httpx.stream("POST", "http://127.0.0.1:8000/v1/chat/completions", json=payload, headers=headers, timeout=120.0) as response:
                 
                 # Se o Gateway barrar a senha (Erro 401 Unauthorized ou 403 Forbidden)
                 if response.status_code in [401, 403]:
