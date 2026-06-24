@@ -13,12 +13,15 @@ from src.core.policy_engine import PolicyEngine
 from src.cache.manager import semantic_cache
 from src.providers.gemini import GeminiProvider
 from src.providers.ollama import OllamaProvider
+from src.metrics.logger import get_logger
+from src.metrics.collector import REQUEST_COUNT, LATENCY, COST_SAVED, ERROR_COUNT
 
 router = APIRouter()
 
 # Setup das engrenagens principais
 circuit_breaker = CircuitBreaker(failure_threshold=3, recovery_timeout=60.0)
 policy_engine = PolicyEngine(circuit_breaker)
+logger = get_logger("chat_gateway")
 
 async def stream_generator(provider, request: ChatRequest):
     messages = [{"role": m.role, "content": m.content} for m in request.messages]
@@ -51,8 +54,17 @@ async def stream_generator(provider, request: ChatRequest):
         if isinstance(provider, GeminiProvider):
             circuit_breaker.record_failure()
             
-        print(f"🔴 ERRO INTERNO DETECTADO: {repr(e)}")
-        # Retorna o erro no formato normalizado para o front-end não quebrar
+        # 1. Registra o erro no log estruturado (Você já tinha feito!)
+        logger.error(
+            "provider_failure",
+            error=repr(e),
+            provider=provider.__class__.__name__
+        )
+        
+        # 👉 2. AQUI ENTRA O CONTADOR DE ERRO DO PROMETHEUS
+        ERROR_COUNT.labels(provider=provider.__class__.__name__).inc()
+        
+        # 3. Retorna o erro no formato normalizado para o front-end não quebrar
         error_json = {"choices": [{"delta": {"content": f"[FALHA DE CONEXÃO: {repr(e)}] "}}]}
         yield f"data: {json.dumps(error_json)}\n\n"
         yield "data: [DONE]\n\n"
@@ -78,7 +90,18 @@ async def chat_completion(
     
     if cached_response:
         process_time = time.time() - start_time
-        print(f"🟢 [MÉTRICA - CACHE HIT] Resposta servida em {process_time:.4f} segundos! Custo: $0.00")
+        
+        # Sai o print, entra o log estruturado
+        logger.info(
+            "cache_hit",
+            tenant_id=tenant.id,
+            tier=tenant.tier,
+            latency_seconds=round(process_time, 4),
+            cost_saved=0.01  # Exemplo de custo médio economizado
+        )
+        REQUEST_COUNT.labels(tenant_id=tenant.id, status="cache_hit").inc()
+        LATENCY.labels(tenant_id=tenant.id, route_type="cache").observe(process_time)
+        COST_SAVED.labels(tenant_id=tenant.id).inc(0.01)
         
         return StreamingResponse(
             cache_stream_generator(cached_response),
@@ -89,7 +112,14 @@ async def chat_completion(
     provider, origem = policy_engine.get_provider_for_tenant(tenant)
         
     process_time = time.time() - start_time
-    print(f"🟡 [MÉTRICA - CACHE MISS] Roteado para {origem} em {process_time:.4f} segundos.")
+    logger.info(
+        "cache_miss",
+        tenant_id=tenant.id,
+        provider_routed=origem,
+        latency_seconds=round(process_time, 4)
+    )
+    REQUEST_COUNT.labels(tenant_id=tenant.id, status="cache_miss").inc()
+    LATENCY.labels(tenant_id=tenant.id, route_type="provider").observe(process_time)
         
     # O Gateway retorna o stream SSE diretamente para a aplicação cliente
     return StreamingResponse(

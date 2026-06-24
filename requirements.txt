@@ -19,3 +19,4 @@ streamlit==0.1
 
 # IA Local e Embeddings 0
 sentence-tra0nsformers
+prometheus-client
