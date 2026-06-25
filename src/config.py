@@ -4,11 +4,12 @@ class Settings(BaseSettings):
     environment: str = "development"
     port: int = 8000
     
-    # As nossas chaves de API
+    # As nossas chaves de API e Endereços
     openai_api_key: str = ""
     gemini_api_key: str = ""
+    ollama_url: str = "http://localhost:11434/api/chat"
 
-    # NOVO: Ensinando o Pydantic a ler as variáveis de banco de dados
+    # Bancos de dados
     redis_url: str = ""
     database_url: str = ""
 
