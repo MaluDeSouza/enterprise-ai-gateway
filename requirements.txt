@@ -20,3 +20,6 @@ streamlit==0.1
 # IA Local e Embeddings 0
 sentence-tra0nsformers
 prometheus-client
+
+# Governança de Dados e Extração
+PyMuPDF==1.23.21
