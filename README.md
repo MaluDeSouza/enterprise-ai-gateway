@@ -46,6 +46,7 @@ Monitoramento detalhado evidenciando o motor de Similaridade Vetorial (Cache Hit
 
 Arquitetura assíncrona focada em alta concorrência e Inversão de Dependência:
 
+
 ```mermaid
 graph TD
     A[Aplicações Clientes / UI] -->|POST /v1/chat + Base64| B(FastAPI Gateway)
@@ -60,6 +61,7 @@ graph TD
     I --> J[Streaming SSE]
     J --> K[(Postgres/Prometheus: Métricas)]
     J --> A
+```
 🛠️ Como executar localmente
 Clone o repositório e instale as dependências:
 
